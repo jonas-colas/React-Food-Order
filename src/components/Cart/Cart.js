@@ -7,6 +7,9 @@ import Checkout from "./Checkout";
 
 const Cart = (props) => {
   const [isCheckout, setIsCheckout] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
 
   const cartCtx = useContext(CartContext);
 
@@ -22,22 +25,30 @@ const Cart = (props) => {
   };
 
   const orderHandler = async (userData) => {
-    // console.log(userData);
-    const resp = await fetch(process.env.REACT_APP_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ 
-        user: userData,
-        orderedItems: cartCtx.items,
-      }),
-    });
-
-    const data = await resp.json();
-    console.log(data);
+    setIsSubmitting(true);
+    try {
+      const resp = await fetch(process.env.REACT_APP_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          user: userData,
+          orderedItems: cartCtx.items,
+        }),
+      });
+  
+      await resp.json();
+      setSuccess(true);
+      cartCtx.clearCart();
+    } catch (error) {
+      setError(error.message || 'Something went wrong');
+    }
+    setIsSubmitting(false);
 
   };
+
+  // const errorHandler = () => <p className="error">{error}</p>
 
   const cartItems = cartCtx.items?.map((item) => (
     <CartItem
@@ -49,30 +60,36 @@ const Cart = (props) => {
   ));
 
   return (
-    <Modal onClose={props.onClose}>
-      <ul className={classes["cart-items"]}>{cartItems}</ul>
-      <div className={classes.total}>
-        <span>Total Amount</span>
-        <span>{totalAmount}</span>
-      </div>
-      {isCheckout ? (
-        <Checkout onCancel={props.onClose} onConfirm={orderHandler} />
-      ) : (
-        <div className={classes.actions}>
-          <button className={classes["button--alt"]} onClick={props.onClose}>
-            Close
-          </button>
-          {itemsExist && (
-            <button
-              className={classes.button}
-              onClick={() => setIsCheckout(true)}
-            >
-              Order
-            </button>
+    <>
+      {!isSubmitting && !success && 
+        <Modal onClose={props.onClose}>
+          <ul className={classes["cart-items"]}>{cartItems}</ul>
+          <div className={classes.total}>
+            <span>Total Amount</span>
+            <span>{totalAmount}</span>
+          </div>
+          {isCheckout ? (
+            <Checkout onCancel={props.onClose} onConfirm={orderHandler} />
+            ) : (
+            <div className={classes.actions}>
+              <button className={classes["button--alt"]} onClick={props.onClose}>
+                Close
+              </button>
+              {itemsExist && (
+                <button
+                className={classes.button}
+                onClick={() => setIsCheckout(true)}
+                >
+                  Order
+                </button>
+              )}
+            </div>
           )}
-        </div>
-      )}
-    </Modal>
+        </Modal>
+      } 
+      {isSubmitting && <p>Sending order data...</p> } 
+      {!isSubmitting && success && <p>Successfully sent the order!</p> }
+    </>
   );
 };
 
