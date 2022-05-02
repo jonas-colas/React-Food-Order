@@ -25,6 +25,7 @@ const MealItemForm = props => {
     <form className={classes.form} onSubmit={submitHandler}>
       <Input 
         ref={qtyInputRef}
+        value={qtyIsValid}
         label="Amount" 
         input={{
           id: 'amount_' + props.id,
